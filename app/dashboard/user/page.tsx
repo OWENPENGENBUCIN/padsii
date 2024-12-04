@@ -1,7 +1,7 @@
 import Search from '@/app/ui/search';
 import Pagination from '@/app/ui/user/pagination';
 import UserTable from '@/app/ui/user/table';
-import { fetchUserPages } from '@/app/lib/transaksi';
+import { fetchUserPages } from '@/app/lib/transaksi/transaksi';
 
 import { lusitana } from '@/app/ui/fonts';
 

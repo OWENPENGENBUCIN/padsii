@@ -5,7 +5,7 @@ import { CreateTransaksiButton } from '@/app/ui/transaksi/buttons';
 
 import { lusitana } from '@/app/ui/fonts';
 import { Suspense } from 'react';
-import { fetchTransaksiPages } from '@/app/lib/transaksi';
+import { fetchTransaksiPages } from '@/app/lib/transaksi/transaksi';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -20,8 +20,9 @@ export default async function TransaksiPage({
     page?: string;
   };
 }) {
-  const query = searchParams?.query || '';
+  const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
+
   const totalPages = await fetchTransaksiPages(query);
 
   return (
@@ -42,3 +43,4 @@ export default async function TransaksiPage({
     </div>
   );
 }
+

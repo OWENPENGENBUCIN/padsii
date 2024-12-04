@@ -1,7 +1,7 @@
 import Form from '@/app/ui/transaksi/create-form';
 import Breadcrumbs from '@/app/ui/transaksi/breadcrumbs';
-import { fetchMenus } from '@/app/lib/menu';
-import { fetchMembers } from '@/app/lib/member';
+import { fetchMenus } from '@/app/lib/menu/menu';
+import { fetchMembers } from '@/app/lib/member/member';
  
 export default async function Page() {
   const menus = await fetchMenus();

@@ -1,5 +1,9 @@
+'use client';
+import { deleteMember } from '@/app/lib/member/cruds-member';
 import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { useState } from 'react';
+import DeleteMemberModal from './delete-member-modal';
 
 export function CreateMemberButton() {
   return (
@@ -16,7 +20,7 @@ export function CreateMemberButton() {
 export function UpdateMemberButton({ id }: { id: string }) {
   return (
     <Link
-      href={`/dashboard/menu/${id}/edit`}
+      href={`/dashboard/member/${id}/edit`}
       className="rounded-md border p-2 hover:bg-gray-100"
     >
       <PencilIcon className="w-5" />
@@ -25,10 +29,33 @@ export function UpdateMemberButton({ id }: { id: string }) {
 }
 
 export function DeleteMemberButton({ id }: { id: string }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setIsLoading(true);
+    const response = await deleteMember(id);
+    setIsModalOpen(false);
+    window.location.reload();
+    setIsLoading(false);
+  };
+
   return (
-    <button className="rounded-md border p-2 hover:bg-gray-100">
-      <span className="sr-only">Hapus Member</span>
-      <TrashIcon className="w-5" />
-    </button>
+    <>
+      <button
+        className="rounded-md border p-2 hover:bg-gray-100"
+        onClick={() => setIsModalOpen(true)}
+      >
+        <TrashIcon className="w-5" />
+      </button>
+
+      {isModalOpen && (
+        <DeleteMemberModal
+          onDelete={handleDelete}
+          onCancel={() => setIsModalOpen(false)}
+          isLoading={isLoading}
+        />
+      )}
+    </>
   );
 }

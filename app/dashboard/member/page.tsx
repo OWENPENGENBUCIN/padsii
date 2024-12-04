@@ -4,7 +4,7 @@ import MemberTable from '@/app/ui/member/table';
 import { CreateMemberButton } from '@/app/ui/member/buttons';
 import { lusitana } from '@/app/ui/fonts';
 import { Suspense } from 'react';
-import { fetchMemberPages } from '@/app/lib/member';
+import { fetchMemberPages } from '@/app/lib/member/member';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

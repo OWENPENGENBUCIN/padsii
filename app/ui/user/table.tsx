@@ -1,4 +1,4 @@
-import { fetchFilteredUser } from '@/app/lib/transaksi';
+import { fetchFilteredUser } from '@/app/lib/transaksi/transaksi';
 
 export default async function UserTable({
   query,

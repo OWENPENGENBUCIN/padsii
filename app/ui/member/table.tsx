@@ -1,5 +1,5 @@
 import { DeleteMemberButton, UpdateMemberButton } from '@/app/ui/member/buttons';
-import { fetchFilteredMembers } from '@/app/lib/member';
+import { fetchFilteredMembers } from '@/app/lib/member/member';
 
 export default async function MemberTable({
   query,
@@ -27,6 +27,7 @@ export default async function MemberTable({
                         <div>
                           <p>{member.nama_member}</p>
                           <p>{member.nohp_member}</p>
+                          <p>{member.referral_count}</p>
                         </div>
                       </div>
                     </div>
@@ -44,7 +45,7 @@ export default async function MemberTable({
                     No HP
                   </th>
                   <th scope="col" className="px-3 py-5 font-medium">
-                   
+                   Referal Count
                   </th>
                 </tr>
               </thead>
@@ -61,6 +62,9 @@ export default async function MemberTable({
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <p>{member.nohp_member}</p>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <p>{member.referral_count}</p>
                     </td>
                     <td className="whitespace-nowrap py-3 pl-6 pr-3">
                       <div className="flex justify-end gap-3">

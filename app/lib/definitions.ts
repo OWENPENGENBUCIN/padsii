@@ -22,12 +22,14 @@ export type Member = {
   id: string;
   nama_member: string;
   nohp_member: string;
+  referral_count: number;
 };
 
 export type MemberTable = {
   id: string;
   nama_member: string;
   nohp_member: string;
+  referral_count: number;
 };
 
 export type Transaksi = {

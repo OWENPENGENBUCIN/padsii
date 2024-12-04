@@ -41,7 +41,8 @@ async function seedMembers() {
     CREATE TABLE IF NOT EXISTS members (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       nama_member VARCHAR(255) NOT NULL,
-      nohp_member VARCHAR(255) NOT NULL
+      nohp_member VARCHAR(255) NOT NULL,
+      referral_count INT DEFAULT 0
     );
   `;
 
@@ -108,6 +109,19 @@ async function seedTransaksi() {
   return insertedTransaksi;
 }
 
+async function seedTransaksiMenus() {
+  await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
+  
+  await client.sql`
+    CREATE TABLE IF NOT EXISTS transaksi_menus (
+      id SERIAL PRIMARY KEY,
+      transaksi_id UUID REFERENCES transaksis(id) ON DELETE CASCADE,
+      menu_id UUID REFERENCES menus(id) ON DELETE CASCADE,
+      jumlah INTEGER NOT NULL
+    );
+  `;
+
+}
 
 
 export async function GET() {
@@ -117,13 +131,13 @@ export async function GET() {
     await seedMembers();
     await seedMenu();
     await seedTransaksi();
+    await seedTransaksiMenus();
     await client.sql`COMMIT`;
 
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {
     await client.sql`ROLLBACK`;
 
-    // Type assertion to handle the error as an instance of Error
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred';
     
     return Response.json({ error: errorMessage }, { status: 500 });

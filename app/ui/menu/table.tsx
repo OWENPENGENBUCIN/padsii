@@ -1,5 +1,5 @@
 import { DeleteMenuButton, UpdateMenuButton } from '@/app/ui/menu/buttons';
-import { fetchFilteredMenu } from '@/app/lib/menu';
+import { fetchFilteredMenu } from '@/app/lib/menu/menu';
 
 export default async function MenuTable({
   query,

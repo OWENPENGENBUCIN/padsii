@@ -1,5 +1,10 @@
+'use client';
+
+import { deleteMenu } from '@/app/lib/menu/cruds-menu';
 import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { useState } from 'react';
+import DeleteMenuModal from './delete-menu-modal';
 
 export function CreateMenuButton() {
   return (
@@ -25,10 +30,38 @@ export function UpdateMenuButton({ id }: { id: string }) {
 }
 
 export function DeleteMenuButton({ id }: { id: string }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setIsLoading(true);
+    const response = await deleteMenu(id);
+
+    if (response.success) {
+      setIsModalOpen(false);
+      window.location.reload();
+    } else {
+      alert(response.message || 'Gagal menghapus menu.');
+    }
+    setIsLoading(false);
+  };
+
   return (
-    <button className="rounded-md border p-2 hover:bg-gray-100">
-      <span className="sr-only">Hapus Menu</span>
-      <TrashIcon className="w-5" />
-    </button>
+    <>
+      <button
+        className="rounded-md border p-2 hover:bg-gray-100"
+        onClick={() => setIsModalOpen(true)}
+      >
+        <TrashIcon className="w-5" />
+      </button>
+
+      {isModalOpen && (
+        <DeleteMenuModal
+          onDelete={handleDelete}
+          onCancel={() => setIsModalOpen(false)}
+          isLoading={isLoading}
+        />
+      )}
+    </>
   );
 }

@@ -128,34 +128,112 @@ const TransaksiSchema = z.object({
 
 const CreateTransaksi = TransaksiSchema.omit({ id: true });
 
-export async function createTransaksi(formData: FormData) {
-  const { member_nama, tanggal_transaksi, total_harga, pembayaran, kembalian } =
+export async function createTransaksi(
+  formData: FormData,
+  selectedMenus: { id: string; jumlah: number }[]
+) {
+  let { member_nama, tanggal_transaksi, total_harga, pembayaran, kembalian } =
     CreateTransaksi.parse({
       member_nama: formData.get("member_nama"),
       tanggal_transaksi: new Date().toISOString().split("T")[0],
-      total_harga: Number(formData.get("total_harga")), // Pastikan tipe number
-      pembayaran: Number(formData.get("pembayaran")), // Pastikan tipe number
-      kembalian: Number(formData.get("kembalian")), // Pastikan tipe number
+      total_harga: Number(formData.get("total_harga")),
+      pembayaran: Number(formData.get("pembayaran")),
+      kembalian: Number(formData.get("kembalian")),
     });
- 
- 
-  try {
-    console.log(member_nama,tanggal_transaksi,total_harga,pembayaran,kembalian)
-    await sql`
-      INSERT INTO transaksis (member_nama, tanggal_transaksi,total_harga ,pembayaran, kembalian)
-      VALUES (${member_nama}, ${tanggal_transaksi},${total_harga}, ${pembayaran}, ${kembalian})
-    `;
-    console.log('success')
-  } catch (error) {
-    console.error('Database Error:', error);
-    return {
-      message: 'Database Error: Failed to Create transaksis.',
-    };
+
+  console.log("Data Transaksi:", {
+    member_nama,
+    tanggal_transaksi,
+    total_harga,
+    pembayaran,
+    kembalian,
+  });
+  console.log("Data Menu:", selectedMenus);
+
+  if (!selectedMenus || selectedMenus.length === 0) {
+    throw new Error("Minimal harus memilih 1 menu.");
   }
- 
-  revalidatePath('/dashboard/transaksi');
-  redirect('/dashboard/transaksi');
+
+  try {
+    await sql`BEGIN`;
+
+    // Menggunakan kode referral jika tersedia
+    const referralPhone = formData.get("referralPhone") as string | null;
+    if (referralPhone) {
+      const referralResult = await sql`
+        SELECT id, referral_count
+        FROM members
+        WHERE nohp_member = ${referralPhone};
+      `;
+
+      if (referralResult.rows.length === 0) {
+        throw new Error("Kode referral tidak valid. Nomor HP tidak ditemukan.");
+      }
+
+      const { id: referredMemberId, referral_count: referralCount } = referralResult.rows[0];
+
+      // Update referral count
+      const newReferralCount = referralCount + 1;
+      await sql`
+        UPDATE members
+        SET referral_count = ${newReferralCount}
+        WHERE id = ${referredMemberId};
+      `;
+
+      // Jika referral count mencapai 3, berikan diskon 30% dan reset referral count
+      if (newReferralCount === 3) {
+        total_harga *= 0.7; // Diskon 30%
+        await sql`
+          UPDATE members
+          SET referral_count = 0
+          WHERE id = ${referredMemberId};
+        `;
+      }
+    }
+
+    // Insert transaksi ke tabel `transaksis`
+    const transaksiResult = await sql`
+      INSERT INTO transaksis (member_nama, tanggal_transaksi, total_harga, pembayaran, kembalian)
+      VALUES (${member_nama}, ${tanggal_transaksi}, ${total_harga}, ${pembayaran}, ${kembalian})
+      RETURNING id;
+    `;
+
+    const transaksiId = transaksiResult.rows[0]?.id;
+
+    if (!transaksiId) {
+      throw new Error("Gagal mendapatkan ID transaksi.");
+    }
+
+    console.log("Transaksi ID:", transaksiId);
+
+    // Insert setiap menu yang dipilih ke tabel `transaksi_menus`
+    for (const menu of selectedMenus) {
+      if (!menu.id) {
+        throw new Error(`Menu ID tidak ditemukan untuk item: ${menu}`);
+      }
+
+      console.log("Inserting Menu:", menu);
+
+      await sql`
+        INSERT INTO transaksi_menus (transaksi_id, menu_id, jumlah)
+        VALUES (${transaksiId}, ${menu.id}, ${menu.jumlah});
+      `;
+    }
+
+    await sql`COMMIT`;
+    console.log("Transaksi berhasil dibuat:", transaksiId);
+
+    return {
+      success: true,
+      message: "Transaksi berhasil dibuat.",
+    };
+  } catch (error) {
+    await sql`ROLLBACK`;
+    console.error("Database Error:", error);
+    throw new Error("Gagal membuat transaksi.");
+  }
 }
+
 
 
 

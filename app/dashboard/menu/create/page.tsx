@@ -1,7 +1,8 @@
 import React from 'react';
-import MenuCreateForm from '@/app/ui/menu/create-form';
+
 import Breadcrumbs from '@/app/ui/menu/breadcrumbs';
 import { MenuTable } from '@/app/lib/definitions';
+import MenuCreateForm from '@/app/ui/menu/create-form';
 
 export default function MenuCreatePage() {
   const menu: MenuTable[] = [];
@@ -18,7 +19,7 @@ export default function MenuCreatePage() {
           },
         ]}
       />
-      <MenuCreateForm menus={menu} />
+      <MenuCreateForm />
     </main>
   );
 }

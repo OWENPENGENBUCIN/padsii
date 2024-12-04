@@ -1,8 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/app/ui/button";
+import { MenuTable, MemberTable } from "@/app/lib/definitions";
 import { createTransaksi } from "@/app/lib/actions";
-import { MemberTable, MenuTable } from "@/app/lib/definitions";
+import ErrorMessages from "./error-message";
+import MenuList from "./menu-list";
+import MemberSelector from "./member-selector";
+import PaymentDetails from "./payment-details";
+import { useRouter } from "next/navigation";
 
 export default function TransaksiCreateForm({
   menu,
@@ -11,34 +16,30 @@ export default function TransaksiCreateForm({
   menu: MenuTable[];
   member: MemberTable[];
 }) {
+  const router = useRouter();
   const [selectedMenus, setSelectedMenus] = useState<any[]>([]);
   const [totalHarga, setTotalHarga] = useState(0);
   const [tanggalTransaksi, setTanggalTransaksi] = useState("");
   const [pembayaran, setPembayaran] = useState(0);
   const [selectedMember, setSelectedMember] = useState<string>("");
+  const [referralPhone, setReferralPhone] = useState<string>("");
+  const [selectedMemberName, setSelectedMemberName] = useState<string>("");
   const [errors, setErrors] = useState<{
     menu?: string;
     pembayaran?: string;
-    member?: string;
+    referral?: string;
   }>({});
 
-  // Format tanggal menjadi "11 November 2024"
-  const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
+  // Format tanggal
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat("id-ID", {
       year: "numeric",
       month: "long",
       day: "numeric",
-    };
-    return new Intl.DateTimeFormat("id-ID", options).format(date);
-  };
+    }).format(date);
 
-  // Set tanggal transaksi otomatis
-  useEffect(() => {
-    const today = new Date();
-    setTanggalTransaksi(formatDate(today));
-  }, []);
+  useEffect(() => setTanggalTransaksi(formatDate(new Date())), []);
 
-  // Hitung total harga
   useEffect(() => {
     const total = selectedMenus.reduce(
       (sum, menu) => sum + menu.harga_menu * menu.jumlah,
@@ -47,240 +48,174 @@ export default function TransaksiCreateForm({
     setTotalHarga(total);
   }, [selectedMenus]);
 
-  // Tambah menu
-  const addMenu = (menu: MenuTable) => {
-    setSelectedMenus((prev) => {
-      const existing = prev.find((item) => item.id === menu.id);
+  const validateReferral = () => {
+    if (!referralPhone) return { isValid: true, message: "" };
 
-      if (existing) {
-        return prev.map((item) =>
-          item.id === menu.id ? { ...item, jumlah: item.jumlah + 1 } : item
-        );
-      } else {
-        return [...prev, { ...menu, jumlah: 1 }];
-      }
-    });
-    setErrors((prev) => ({ ...prev, menu: undefined }));
+    const referredMember = member.find((m) => m.nohp_member === referralPhone);
+
+    if (!referredMember) {
+      return {
+        isValid: false,
+        message: "Kode referral tidak valid. Nomor HP tidak ditemukan.",
+      };
+    }
+
+    if (referredMember.id === selectedMember) {
+      return {
+        isValid: false,
+        message: "Kode referral tidak valid. Nomor HP harus milik anggota lain.",
+      };
+    }
+
+    const selectedMemberData = member.find((m) => m.id === selectedMember);
+
+    if (selectedMemberData && referredMember.nohp_member === selectedMemberData.nohp_member) {
+      return {
+        isValid: false,
+        message: "Kode referral tidak valid. Nomor HP referral tidak boleh sama dengan anggota yang dipilih.",
+      };
+    }
+
+    if (referredMember.referral_count + 1 === 3) {
+      return {
+        isValid: true,
+        message: "Referral valid. Diskon 30% diterapkan karena referral_count mencapai 3",
+        isMaxReferral: true,
+      };
+    }
+
+    return { isValid: true, message: "Referral valid. Diskon 10% diterapkan." };
   };
 
-  // Kurangi menu
-  const removeMenu = (menu: MenuTable) => {
-    setSelectedMenus((prev) => {
-      const existing = prev.find((item) => item.id === menu.id);
+  const applyDiscount = () => {
+    const referralValidation = validateReferral();
 
-      if (existing) {
-        if (existing.jumlah > 1) {
-          return prev.map((item) =>
-            item.id === menu.id ? { ...item, jumlah: item.jumlah - 1 } : item
-          );
-        } else {
-          return prev.filter((item) => item.id !== menu.id);
-        }
-      }
+    if (referralValidation.isMaxReferral && referralPhone) {
+      return totalHarga * 0.7;
+    }
 
-      return prev;
-    });
+    if (referralValidation.isValid && referralPhone) {
+      return totalHarga * 0.9;
+    }
+
+    return totalHarga;
   };
 
-  // Reset form
   const handleReset = () => {
-    setSelectedMenus([]);
-    setTotalHarga(0);
-    setTanggalTransaksi(formatDate(new Date()));
-    setPembayaran(0);
-    setSelectedMember("");
-    setErrors({});
+    router.back(); // Navigasi ke halaman sebelumnya
   };
 
-  // Validate and handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
     if (selectedMenus.length === 0) {
+      setErrors((prev) => ({ ...prev, menu: "Minimal harus memilih 1 menu" }));
+      return;
+    }
+
+    if (pembayaran === 0 || pembayaran === null) {
       setErrors((prev) => ({
         ...prev,
-        menu: "Minimal harus memilih 1 menu",
+        pembayaran: "Input pembayaran harus diisi.",
       }));
       return;
     }
 
-    if (selectedMember === "") {
+    const discountedTotal = applyDiscount();
+
+    if (pembayaran < discountedTotal) {
       setErrors((prev) => ({
         ...prev,
-        member: "Pilih member terlebih dahulu",
+        pembayaran: "Pembayaran kurang!",
       }));
       return;
     }
 
-    if (pembayaran < totalHarga) {
-      setErrors((prev) => ({
-        ...prev,
-        pembayaran: "Pembayaran Kurang !!!",
-      }));
+    const referralValidation = validateReferral();
+    if (!referralValidation.isValid) {
+      setErrors((prev) => ({ ...prev, referral: referralValidation.message }));
       return;
     }
 
-    // Buat transaksi jika semua valid
-    await createTransaksi({ selectedMenus, selectedMember, totalHarga, pembayaran, tanggalTransaksi });
+    try {
+      const formData = new FormData();
+      formData.append("member_id", selectedMember || "");
+      formData.append("member_nama", selectedMemberName || "");
+      formData.append("tanggal_transaksi", tanggalTransaksi);
+      formData.append("total_harga", totalHarga.toString());
+      formData.append("pembayaran", pembayaran.toString());
+      formData.append("kembalian", (pembayaran - discountedTotal).toString());
+
+      if (referralPhone) {
+        formData.append("referralPhone", referralPhone);
+      }
+
+      const response = await createTransaksi(formData, selectedMenus);
+
+      if (response.success) {
+        alert(response.message);
+        router.back();
+      } else {
+        setErrors((prev) => ({ ...prev, submit: response.message }));
+      }
+    } catch (error: any) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: error.message || "Gagal mengirim transaksi.",
+      }));
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
-        {/* Error Messages */}
-        {(errors.menu || errors.pembayaran || errors.member) && (
-          <div className="mb-4 p-4 bg-red-100 rounded-md">
-            {errors.menu && (
-              <p className="text-red-600 text-sm mb-2">{errors.menu}</p>
-            )}
-            {errors.pembayaran && (
-              <p className="text-red-600 text-sm">{errors.pembayaran}</p>
-            )}
-            {errors.member && (
-              <p className="text-red-600 text-sm">{errors.member}</p>
-            )}
-          </div>
-        )}
-
-        {/* Pilih Menu */}
-        <div className="mb-4">
-          <label htmlFor="total_harga" className="block text-sm font-medium mb-2">
-            Pilih Menu
-          </label>
-          <div className="border border-gray-300 rounded-lg shadow-sm">
-            {menu.map((item, index) => (
-              <div key={item.id}>
-                <div
-                  className={`flex items-center justify-between px-4 py-3 ${
-                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  }`}
-                >
-                  <div className="text-sm font-medium text-gray-700">
-                    {item.nama_menu} - Rp {item.harga_menu}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="rounded-full bg-red-500 text-white px-2 py-1 text-sm hover:bg-red-600"
-                      onClick={() => removeMenu(item)}
-                    >
-                      -
-                    </button>
-                    <span className="font-semibold">
-                      {
-                        selectedMenus.find((menu) => menu.id === item.id)?.jumlah ||
-                        0
-                      }
-                    </span>
-                    <button
-                      type="button"
-                      className="rounded-full bg-green-500 text-white px-2 py-1 text-sm hover:bg-green-600"
-                      onClick={() => addMenu(item)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <hr className="border-t border-gray-300" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Pilih Member */}
-        <div className="mb-4">
-          <label htmlFor="member_nama" className="block text-sm font-medium mb-2">
-            Pilih Member
-          </label>
-          <select
-            id="member_nama"
-            name="member_nama"
-            className="block w-full rounded-md border border-gray-200 py-2 pl-3 text-sm"
-            required
-            value={selectedMember} // Pastikan value-nya mengikat ke selectedMember
-            onChange={(e) => setSelectedMember(e.target.value)}
-          >
-            <option value="">Pilih Member</option>
-            {member.map((item) => (
-              <option key={item.id} value={item.nama_member}>
-                {item.nohp_member}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Tanggal Transaksi */}
-        <div className="mb-4">
-          <label
-            htmlFor="tanggal_transaksi"
-            className="block text-sm font-medium mb-2"
-          >
-            Tanggal Transaksi
-          </label>
-          <input
-            id="tanggal_transaksi"
-            name="tanggal_transaksi"
-            type="text"
-            value={tanggalTransaksi}
-            className="block w-full rounded-md border border-gray-200 py-2 pl-3 text-sm"
-            readOnly
-          />
-        </div>
-
-        {/* Total Harga */}
-        <div className="mb-4">
-          <label htmlFor="total_harga" className="block text-sm font-medium mb-2">
-            Total Harga
-          </label>
-          <input
-            id="total_harga"
-            name="total_harga"
-            type="number"
-            value={totalHarga}
-            className="block w-full rounded-md border border-gray-200 py-2 pl-3 text-sm"
-            readOnly
-          />
-        </div>
-
-        {/* Pembayaran */}
-        <div className="mb-4 flex items-center">
-          <label htmlFor="pembayaran" className="block text-sm font-medium mb-2">
-            Pembayaran
-          </label>
-          {errors.pembayaran && (
-            <p className="text-red-600 text-sm ml-2">{errors.pembayaran}</p>
-          )}
-        </div>
-        <input
-          id="pembayaran"
-          name="pembayaran"
-          type="number"
-          placeholder="Masukkan Pembayaran"
-          className={`block w-full rounded-md border py-2 pl-3 text-sm ${
-            errors.pembayaran ? "border-red-500" : "border-gray-200"
-          }`}
-          disabled={selectedMenus.length === 0}
-          onChange={(e) => setPembayaran(Number(e.target.value))}
+        <ErrorMessages errors={errors} />
+        <MenuList
+          menu={menu}
+          selectedMenus={selectedMenus}
+          setSelectedMenus={setSelectedMenus}
+        />
+        <MemberSelector
+          setSelectedMemberName={setSelectedMemberName}
+          member={member}
+          selectedMember={selectedMember}
+          setSelectedMember={setSelectedMember}
         />
 
-        {/* Kembalian */}
-        <div className="mb-4 mt-6">
-          <label htmlFor="kembalian" className="block text-sm font-medium mb-2">
-            Kembalian
+        <div className="mb-4">
+          <label htmlFor="referralPhone" className="block text-sm font-medium mb-2">
+            Nomor HP Referral (Opsional)
           </label>
           <input
-            id="kembalian"
-            name="kembalian"
-            type="number"
-            value={pembayaran - totalHarga}
+            id="referralPhone"
+            name="referralPhone"
+            type="text"
+            value={referralPhone}
+            placeholder="Masukkan nomor HP referral"
             className="block w-full rounded-md border border-gray-200 py-2 pl-3 text-sm"
-            readOnly
+            onChange={(e) => setReferralPhone(e.target.value)}
           />
+          {errors.referral && (
+            <p className="text-red-600 text-sm mt-2">{errors.referral}</p>
+          )}
+          {validateReferral().message && (
+            <p className="text-green-600 text-sm mt-2">
+              {validateReferral().message}
+            </p>
+          )}
         </div>
 
-        {/* Button Submit and Reset */}
-        <div className="flex gap-4 justify-end">
+        <PaymentDetails
+          totalHarga={applyDiscount()}
+          pembayaran={pembayaran}
+          setPembayaran={setPembayaran}
+          tanggalTransaksi={tanggalTransaksi}
+        />
+        {errors.pembayaran && (
+          <p className="text-red-600 text-sm mt-2">{errors.pembayaran}</p>
+        )}
+        <div className="flex gap-4 justify-end mt-6">
           <Button type="submit">Simpan</Button>
           <Button type="button" onClick={handleReset}>
             Batal

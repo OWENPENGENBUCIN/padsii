@@ -5,7 +5,7 @@ import { CreateMenuButton} from '@/app/ui/menu/buttons';
 
 import { lusitana } from '@/app/ui/fonts';
 import { Suspense } from 'react';
-import { fetchMenuPages } from '@/app/lib/menu';
+import { fetchMenuPages } from '@/app/lib/menu/menu';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

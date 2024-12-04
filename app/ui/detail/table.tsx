@@ -1,4 +1,4 @@
-import { fetchFilteredDetailTransaksi } from '@/app/lib/transaksi';
+import { fetchFilteredDetailTransaksi } from '@/app/lib/transaksi/transaksi';
 import type { DetailTransaksi } from '@/app/lib/definitions'; // Import tipe data DetailTransaksi
 
 export default async function detailtranskasiTable({
