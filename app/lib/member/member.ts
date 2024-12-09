@@ -10,16 +10,17 @@ export async function fetchFilteredMembers(query: string, currentPage: number) {
 
   try {
     const members = await sql<MemberTable>`
-      SELECT DISTINCT
+       SELECT 
         members.id,
         members.nama_member,
         members.nohp_member,
-        members.referral_count
+        members.referral_count,
+        members.created_at
       FROM members
       WHERE
         members.nama_member ILIKE ${`%${query}%`} OR
         members.nohp_member ILIKE ${`%${query}%`}
-      ORDER BY members.id ASC
+      ORDER BY members.created_at DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
@@ -54,9 +55,10 @@ export async function fetchMembers() {
       members.id, 
       members.nama_member, 
       members.nohp_member, 
-      members.referral_count
+      members.referral_count,
+      members.created_at
       FROM members
-      ORDER BY members.nama_member
+      ORDER BY members.created_at DESC
     `;
     return members.rows;
   } catch (error) {

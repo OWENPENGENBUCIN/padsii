@@ -1,12 +1,12 @@
-'use server';
- 
-import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
-import { sql } from '@vercel/postgres';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-import { z } from 'zod';
- 
+"use server";
+
+import { signIn } from "@/auth";
+import { AuthError } from "next-auth";
+import { sql } from "@vercel/postgres";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+
 // const MenuSchema = z.object({
 //   nama: z.string().min(1, 'Nama menu harus diisi'),
 //   harga: z.number().positive('Harga harus lebih dari 0'),
@@ -18,10 +18,7 @@ import { z } from 'zod';
 //   nohp_member: z.string(),
 // });
 
-
-
 // const UpdateTransaksi = TransaksiSchema.omit({});
-
 
 // const CreateMenu = MenuSchema.omit({}); // Assuming no need to omit fields for creation
 // const UpdateMenu = MenuSchema.omit({}); // Assuming you allow all fields to be updated
@@ -92,7 +89,6 @@ import { z } from 'zod';
 //     return { message: 'Database Error: Failed to Delete Menu.' };
 //   }
 // }
- 
 
 // const CreateMember = MemberSchema.omit({id: true});
 
@@ -116,14 +112,13 @@ import { z } from 'zod';
 //   redirect('/dashboard/member');
 // }
 
-
 const TransaksiSchema = z.object({
-  id:z.string(),
-  member_nama:z.string(),
+  id: z.string(),
+  member_nama: z.string(),
   tanggal_transaksi: z.string(),
   total_harga: z.number(),
-  pembayaran:z.number(),
-  kembalian:z.number(),
+  pembayaran: z.number(),
+  kembalian: z.number(),
 });
 
 const CreateTransaksi = TransaksiSchema.omit({ id: true });
@@ -157,8 +152,29 @@ export async function createTransaksi(
   try {
     await sql`BEGIN`;
 
-    // Menggunakan kode referral jika tersedia
+    const memberId = formData.get("member_id") as string;
     const referralPhone = formData.get("referralPhone") as string | null;
+
+    if (memberId) {
+      const memberResult = await sql`
+        SELECT referral_count
+        FROM members
+        WHERE id = ${memberId};
+      `;
+
+      const referralCount = memberResult.rows[0]?.referral_count || 0;
+
+      if (referralCount >= 3) {
+        total_harga *= 0.7;
+        const remainingCount = referralCount - 3;
+        await sql`
+          UPDATE members
+          SET referral_count = ${remainingCount}
+          WHERE id = ${memberId};
+        `;
+      }
+    }
+
     if (referralPhone) {
       const referralResult = await sql`
         SELECT id, referral_count
@@ -170,28 +186,17 @@ export async function createTransaksi(
         throw new Error("Kode referral tidak valid. Nomor HP tidak ditemukan.");
       }
 
-      const { id: referredMemberId, referral_count: referralCount } = referralResult.rows[0];
+      const { id: referredMemberId, referral_count: referralCount } =
+        referralResult.rows[0];
 
-      // Update referral count
       const newReferralCount = referralCount + 1;
       await sql`
         UPDATE members
         SET referral_count = ${newReferralCount}
         WHERE id = ${referredMemberId};
       `;
-
-      // Jika referral count mencapai 3, berikan diskon 30% dan reset referral count
-      if (newReferralCount === 3) {
-        total_harga *= 0.7; // Diskon 30%
-        await sql`
-          UPDATE members
-          SET referral_count = 0
-          WHERE id = ${referredMemberId};
-        `;
-      }
     }
 
-    // Insert transaksi ke tabel `transaksis`
     const transaksiResult = await sql`
       INSERT INTO transaksis (member_nama, tanggal_transaksi, total_harga, pembayaran, kembalian)
       VALUES (${member_nama}, ${tanggal_transaksi}, ${total_harga}, ${pembayaran}, ${kembalian})
@@ -206,7 +211,6 @@ export async function createTransaksi(
 
     console.log("Transaksi ID:", transaksiId);
 
-    // Insert setiap menu yang dipilih ke tabel `transaksi_menus`
     for (const menu of selectedMenus) {
       if (!menu.id) {
         throw new Error(`Menu ID tidak ditemukan untuk item: ${menu}`);
@@ -239,17 +243,17 @@ export async function createTransaksi(
 
 export async function authenticate(
   prevState: string | undefined,
-  formData: FormData,
+  formData: FormData
 ) {
   try {
-    await signIn('credentials', formData);
+    await signIn("credentials", formData);
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
+        case "CredentialsSignin":
+          return "Invalid credentials.";
         default:
-          return 'Something went wrong.';
+          return "Something went wrong.";
       }
     }
     throw error;

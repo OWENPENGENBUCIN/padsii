@@ -49,3 +49,17 @@ export type TransaksiTable = {
   pembayaran:number;
   kembalian:number;
 };
+
+export interface Laporan {
+  transaksi_id: number;          
+  tanggal_transaksi: string;     
+  total_harga: number;           
+  pembayaran: number;            
+  kembalian: number;             
+  jumlah: number;                
+  nama_menu: string;             
+  total_menu_harga: number;      
+  member_nama: string | null;    
+}
+
+

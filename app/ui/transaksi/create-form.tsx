@@ -21,9 +21,9 @@ export default function TransaksiCreateForm({
   const [totalHarga, setTotalHarga] = useState(0);
   const [tanggalTransaksi, setTanggalTransaksi] = useState("");
   const [pembayaran, setPembayaran] = useState(0);
-  const [selectedMember, setSelectedMember] = useState<string>("");
-  const [referralPhone, setReferralPhone] = useState<string>("");
-  const [selectedMemberName, setSelectedMemberName] = useState<string>("");
+  const [selectedMember, setSelectedMember] = useState<string>(""); 
+  const [referralPhone, setReferralPhone] = useState<string>(""); 
+  const [selectedMemberName, setSelectedMemberName] = useState<string>(""); 
   const [errors, setErrors] = useState<{
     menu?: string;
     pembayaran?: string;
@@ -49,52 +49,62 @@ export default function TransaksiCreateForm({
   }, [selectedMenus]);
 
   const validateReferral = () => {
-    if (!referralPhone) return { isValid: true, message: "" };
+    const currentMember = member.find((m) => m.id === selectedMember);
 
-    const referredMember = member.find((m) => m.nohp_member === referralPhone);
-
-    if (!referredMember) {
-      return {
-        isValid: false,
-        message: "Kode referral tidak valid. Nomor HP tidak ditemukan.",
-      };
-    }
-
-    if (referredMember.id === selectedMember) {
-      return {
-        isValid: false,
-        message: "Kode referral tidak valid. Nomor HP harus milik anggota lain.",
-      };
-    }
-
-    const selectedMemberData = member.find((m) => m.id === selectedMember);
-
-    if (selectedMemberData && referredMember.nohp_member === selectedMemberData.nohp_member) {
-      return {
-        isValid: false,
-        message: "Kode referral tidak valid. Nomor HP referral tidak boleh sama dengan anggota yang dipilih.",
-      };
-    }
-
-    if (referredMember.referral_count + 1 === 3) {
+    if (currentMember?.referral_count! >= 3) {
+      if (referralPhone) {
+        const referredMember = member.find((m) => m.nohp_member === referralPhone);
+        if (referredMember && referredMember.id !== selectedMember) {
+          return {
+            isValid: true,
+            message: "Referral valid. Diskon 40% diterapkan.",
+            isReferral40: true,
+          };
+        } else {
+          return {
+            isValid: false,
+            message: "Kode referral tidak valid atau sama dengan anggota yang dipilih.",
+          };
+        }
+      }
       return {
         isValid: true,
-        message: "Referral valid. Diskon 30% diterapkan karena referral_count mencapai 3",
-        isMaxReferral: true,
+        message: "Diskon 30% diterapkan karena referral_count mencapai 3.",
+        isReferral30: true,
       };
     }
 
-    return { isValid: true, message: "Referral valid. Diskon 10% diterapkan." };
+    if (referralPhone) {
+      const referredMember = member.find((m) => m.nohp_member === referralPhone);
+      if (referredMember && referredMember.id !== selectedMember) {
+        return {
+          isValid: true,
+          message: "Referral valid. Diskon 10% diterapkan.",
+          isReferral10: true,
+        };
+      } else {
+        return {
+          isValid: false,
+          message: "Kode referral tidak valid atau sama dengan anggota yang dipilih.",
+        };
+      }
+    }
+
+    return { isValid: true, message: "" };
   };
 
   const applyDiscount = () => {
     const referralValidation = validateReferral();
 
-    if (referralValidation.isMaxReferral && referralPhone) {
+    if (referralValidation.isReferral40) {
+      return totalHarga * 0.6;
+    }
+
+    if (referralValidation.isReferral30) {
       return totalHarga * 0.7;
     }
 
-    if (referralValidation.isValid && referralPhone) {
+    if (referralValidation.isReferral10) {
       return totalHarga * 0.9;
     }
 
@@ -102,7 +112,7 @@ export default function TransaksiCreateForm({
   };
 
   const handleReset = () => {
-    router.back(); // Navigasi ke halaman sebelumnya
+    router.back();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +153,7 @@ export default function TransaksiCreateForm({
       formData.append("member_id", selectedMember || "");
       formData.append("member_nama", selectedMemberName || "");
       formData.append("tanggal_transaksi", tanggalTransaksi);
-      formData.append("total_harga", totalHarga.toString());
+      formData.append("total_harga", discountedTotal.toString()); // Kirimkan total harga yang sudah didiskon
       formData.append("pembayaran", pembayaran.toString());
       formData.append("kembalian", (pembayaran - discountedTotal).toString());
 
@@ -193,13 +203,15 @@ export default function TransaksiCreateForm({
             type="text"
             value={referralPhone}
             placeholder="Masukkan nomor HP referral"
-            className="block w-full rounded-md border border-gray-200 py-2 pl-3 text-sm"
+            className={`block w-full rounded-md border py-2 pl-3 text-sm ${
+              errors.referral ? "border-red-600" : "border-gray-200"
+            }`}
             onChange={(e) => setReferralPhone(e.target.value)}
           />
           {errors.referral && (
             <p className="text-red-600 text-sm mt-2">{errors.referral}</p>
           )}
-          {validateReferral().message && (
+          {validateReferral().message && !errors.referral && (
             <p className="text-green-600 text-sm mt-2">
               {validateReferral().message}
             </p>

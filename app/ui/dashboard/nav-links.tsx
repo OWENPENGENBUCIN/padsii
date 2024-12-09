@@ -3,7 +3,8 @@
 import {
   UserGroupIcon,
   HomeIcon,
-  DocumentDuplicateIcon, // You can remove this if not used
+  DocumentDuplicateIcon,
+  ClipboardDocumentIcon, // You can remove this if not used
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -15,6 +16,7 @@ const links = [
   { name: 'Menu', href: '/dashboard/menu', icon: UserGroupIcon }, 
   { name: 'Member', href: '/dashboard/member', icon: UserGroupIcon },
   { name: 'Transaksi', href: '/dashboard/transaksi', icon: DocumentDuplicateIcon },  
+  { name: 'Laporan', href: '/dashboard/laporan', icon: ClipboardDocumentIcon },  
   
 ];
 

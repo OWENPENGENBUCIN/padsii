@@ -15,13 +15,10 @@ export const metadata: Metadata = {
 export default async function TransaksiPage({
   searchParams,
 }: {
-  searchParams?: {
-    query?: string;
-    page?: string;
-  };
+  searchParams?: Record<string, string | undefined>;
 }) {
-  const query = searchParams?.query || "";
-  const currentPage = Number(searchParams?.page) || 1;
+  const query = searchParams?.query ?? ""; 
+  const currentPage = Number(searchParams?.page ?? 1); 
 
   const totalPages = await fetchTransaksiPages(query);
 
@@ -43,4 +40,5 @@ export default async function TransaksiPage({
     </div>
   );
 }
+
 

@@ -1,3 +1,4 @@
+
 import { unstable_noStore as noStore } from "next/cache";
 import { sql } from "@vercel/postgres";
 import { TransaksiTable } from "../definitions";
@@ -19,7 +20,8 @@ export async function fetchFilteredTransaksi(
         transaksis.tanggal_transaksi,
         transaksis.total_harga,
         transaksis.pembayaran,
-        transaksis.kembalian
+        transaksis.kembalian,
+        transaksis.created_at
       FROM transaksis
       WHERE                                                                                                                                                                                            
         transaksis.member_nama ILIKE ${`%${query}%`} OR
@@ -28,11 +30,10 @@ export async function fetchFilteredTransaksi(
         transaksis.total_harga::text ILIKE ${`%${query}%`} OR
         transaksis.pembayaran::text ILIKE ${`%${query}%`} OR
         transaksis.kembalian::text ILIKE ${`%${query}%`}
-      ORDER BY transaksis.tanggal_transaksi DESC
+      ORDER BY transaksis.created_at DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
-    console.log("Transaksi fetched:", transaksis.rows); // Debugging
     return transaksis.rows;
   } catch (error) {
     console.error("Database Error:", error);

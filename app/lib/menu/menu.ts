@@ -13,12 +13,13 @@ export async function fetchFilteredMenu(query: string, currentPage: number) {
         SELECT DISTINCT
           menus.id,
           menus.nama_menu,
-          menus.harga_menu
+          menus.harga_menu,
+          menus.created_at
         FROM menus
         WHERE
           menus.nama_menu ILIKE ${`%${query}%`} OR
           menus.harga_menu::text ILIKE ${`%${query}%`}
-        ORDER BY menus.id ASC
+        ORDER BY menus.created_at DESC
         LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
       `;
 
@@ -52,7 +53,8 @@ export async function fetchMenus() {
         SELECT 
         menus.id, 
         menus.nama_menu, 
-        menus.harga_menu 
+        menus.harga_menu ,
+        menus.created_at
         FROM menus
         ORDER BY menus.nama_menu
       `;

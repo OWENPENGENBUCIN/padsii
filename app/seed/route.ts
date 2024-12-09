@@ -1,11 +1,8 @@
 import bcrypt from 'bcrypt';
 import { db } from '@vercel/postgres';
-import { members, users, transaksis, menus,} from '../lib/placeholder-data';
+import { members, users, transaksis, menus } from '../lib/placeholder-data';
 
 const client = await db.connect();
-
-
-
 
 async function seedUsers() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
@@ -14,7 +11,8 @@ async function seedUsers() {
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
-      password VARCHAR(255) NOT NULL 
+      password VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -29,20 +27,18 @@ async function seedUsers() {
     })
   );
 
-
   return insertedUsers;
 }
 
-
 async function seedMembers() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
-
   await client.sql`
     CREATE TABLE IF NOT EXISTS members (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       nama_member VARCHAR(255) NOT NULL,
       nohp_member VARCHAR(255) NOT NULL,
-      referral_count INT DEFAULT 0
+      referral_count INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -65,7 +61,8 @@ async function seedMenu() {
     CREATE TABLE IF NOT EXISTS menus (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       nama_menu VARCHAR(255) NOT NULL,
-      harga_menu DECIMAL(15,2) NOT NULL
+      harga_menu DECIMAL(15,2) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -82,7 +79,6 @@ async function seedMenu() {
   return insertedMenu;
 }
 
-
 async function seedTransaksi() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
   await client.sql`
@@ -92,15 +88,16 @@ async function seedTransaksi() {
       tanggal_transaksi DATE NOT NULL,
       total_harga DECIMAL(15,2) NOT NULL,
       pembayaran DECIMAL(15,2) NOT NULL,
-      kembalian DECIMAL(15,2) NOT NULL
+      kembalian DECIMAL(15,2) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
   const insertedTransaksi = await Promise.all(
     transaksis.map(
       (transaksi) => client.sql`
-        INSERT INTO transaksis (member_nama, tanggal_transaksi, total_harga,pembayaran,kembalian)
-        VALUES (${transaksi.member_nama},${transaksi.tanggal_transaksi}, ${transaksi.total_harga},${transaksi.pembayaran},${transaksi.kembalian})
+        INSERT INTO transaksis (member_nama, tanggal_transaksi, total_harga, pembayaran, kembalian)
+        VALUES (${transaksi.member_nama}, ${transaksi.tanggal_transaksi}, ${transaksi.total_harga}, ${transaksi.pembayaran}, ${transaksi.kembalian})
         ON CONFLICT (id) DO NOTHING;
       `
     )
@@ -111,18 +108,16 @@ async function seedTransaksi() {
 
 async function seedTransaksiMenus() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
-  
   await client.sql`
     CREATE TABLE IF NOT EXISTS transaksi_menus (
       id SERIAL PRIMARY KEY,
       transaksi_id UUID REFERENCES transaksis(id) ON DELETE CASCADE,
       menu_id UUID REFERENCES menus(id) ON DELETE CASCADE,
-      jumlah INTEGER NOT NULL
+      jumlah INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
-
 }
-
 
 export async function GET() {
   try {
@@ -138,8 +133,7 @@ export async function GET() {
   } catch (error) {
     await client.sql`ROLLBACK`;
 
-    const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred';
-    
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return Response.json({ error: errorMessage }, { status: 500 });
   }
 }
