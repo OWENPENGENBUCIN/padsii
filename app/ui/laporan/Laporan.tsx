@@ -129,25 +129,33 @@ export default function LaporanClient({
                   <th className="px-4 py-2">Aksi</th>
                 </tr>
               </thead>
-              <tbody className='bg-white'>
-                {uniqueTransactions.map((item, index) => (
-                  <tr key={item.transaksi_id} className="border-b">
-                    <td className="px-4 py-2 text-center">{index + 1}</td>
-                    <td className="px-4 py-2">{item.member_nama}</td>
-                    <td className="px-4 py-2">{item.tanggal_transaksi}</td>
-                    <td className="px-4 py-2 text-right">
-                      {item.total_harga.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <Button
-                        onClick={() => handlePrint(item.transaksi_id)}
-                        className="rounded bg-blue-500 px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
-                      >
-                        Print
-                      </Button>
+              <tbody className="bg-white">
+                {uniqueTransactions.length > 0 ? (
+                  uniqueTransactions.map((item, index) => (
+                    <tr key={item.transaksi_id} className="border-b">
+                      <td className="px-4 py-2 text-center">{index + 1}</td>
+                      <td className="px-4 py-2">{item.member_nama}</td>
+                      <td className="px-4 py-2">{item.tanggal_transaksi}</td>
+                      <td className="px-4 py-2 text-right">
+                        {item.total_harga.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <Button
+                          onClick={() => handlePrint(item.transaksi_id)}
+                          className="rounded bg-blue-500 px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
+                        >
+                          Print
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-2 text-center text-gray-500">
+                      Tidak ada data pada bulan {months[selectedMonth! - 1]}.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
