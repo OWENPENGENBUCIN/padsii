@@ -37,6 +37,53 @@ export default function LaporanClient({
     }
   };
 
+  const handlePrintAll = () => {
+    if (!uniqueTransactions.length) return;
+
+    const printContent = `
+      <div style="font-family: Arial, sans-serif; margin: 20px;">
+        <h1 style="text-align: center;">Laporan Penjualan Bulan ${months[selectedMonth! - 1]}</h1>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr style="background-color: #f4f4f4;">
+              <th style="border: 1px solid #ddd; padding: 8px;">No</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Nama Member</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Tanggal Transaksi</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Total Harga</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${uniqueTransactions
+        .map(
+          (item, index) => `
+                  <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${index + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.member_nama}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.tanggal_transaksi}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.total_harga.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                  </tr>
+                `
+        )
+        .join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const printContainer = document.createElement('div');
+    printContainer.innerHTML = printContent;
+    printContainer.style.display = 'none';
+    document.body.appendChild(printContainer);
+
+    const originalContent = document.body.innerHTML;
+    document.body.innerHTML = printContainer.innerHTML;
+
+    window.print();
+    document.body.innerHTML = originalContent;
+
+    window.location.reload();
+  };
+
   const handlePrint = (transaksiId: number) => {
     const transaksi = reportData.filter((data) => data.transaksi_id === transaksiId);
 
@@ -59,8 +106,8 @@ export default function LaporanClient({
           </thead>
           <tbody>
             ${transaksi
-              .map(
-                (item, index) => `
+        .map(
+          (item, index) => `
                   <tr>
                     <td style="border: 1px solid #ddd; padding: 8px;">${index + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${item.nama_menu}</td>
@@ -69,8 +116,8 @@ export default function LaporanClient({
                     <td style="border: 1px solid #ddd; padding: 8px;">${(item.jumlah * item.total_menu_harga).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
                   </tr>
                 `
-              )
-              .join('')}
+        )
+        .join('')}
           </tbody>
         </table>
         <p style="margin-top: 20px;"><strong>Total Harga:</strong> ${transaksi[0]?.total_harga.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
@@ -108,14 +155,24 @@ export default function LaporanClient({
           <button
             key={index}
             onClick={() => handleMonthClick(index)}
-            className={`${
-              selectedMonth === index + 1 ? 'bg-green-500' : 'bg-blue-500'
-            } hover:bg-blue-600 text-white font-medium py-2 px-4 rounded shadow transition-all duration-200`}
+            className={`${selectedMonth === index + 1 ? 'bg-green-500' : 'bg-blue-500'
+              } hover:bg-blue-600 text-white font-medium py-2 px-4 rounded shadow transition-all duration-200`}
           >
             {month}
           </button>
         ))}
       </div>
+      <div className="mt-4 text-center">
+        {uniqueTransactions.length > 0 && (
+          <Button
+            onClick={handlePrintAll}
+            className="rounded bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+          >
+            Print Semua Laporan
+          </Button>
+        )}
+      </div>
+
       <div className="mt-8 flow-root">
         <div className="inline-block min-w-full align-middle">
           <div className="rounded-lg bg-gray-50 p-2 md:pt-0">
